@@ -5,6 +5,7 @@ This document describes how to deploy a highly available (HA) Kubernetes cluster
 The goal is to provide a repeatable, production‑oriented procedure that can be used by operations and platform teams.
 
 Wherever possible, operations that could be handled via Ansible Galaxy roles or collections (for example SELinux management) are implemented explicitly within this project. This is intentional, to ensure that the playbooks remain usable in environments where access to Ansible Galaxy is restricted or not permitted by organizational security policies.
+
 ---
 ## 1. Overview
 
