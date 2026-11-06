@@ -7,7 +7,7 @@
 
 - name: Display join command
   debug:
-    var: certs.stdout_lines[2]]
+    var: certs.stdout_lines[2]
   tags: master_init
 
 - name: getting token from master

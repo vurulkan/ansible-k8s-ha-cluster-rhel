@@ -1,0 +1,61 @@
+---
+# Longhorn node prerequisites (V1 data engine) - run on [longhorn] group
+- name: Install Longhorn prerequisites
+  yum:
+    name:
+      - iscsi-initiator-utils
+      - nfs-utils
+      - cryptsetup
+      - device-mapper
+    state: present
+  tags: longhorn
+
+- name: Generate iSCSI initiator name
+  shell: echo "InitiatorName=$(/sbin/iscsi-iname)" > /etc/iscsi/initiatorname.iscsi
+  args:
+    creates: /etc/iscsi/initiatorname.iscsi
+  tags: longhorn
+
+- name: Load iscsi_tcp module on boot
+  copy:
+    content: "iscsi_tcp\n"
+    dest: /etc/modules-load.d/iscsi_tcp.conf
+  tags: longhorn
+
+- name: Load iscsi_tcp module
+  modprobe:
+    name: iscsi_tcp
+    state: present
+  tags: longhorn
+
+- name: Enable and start iscsid
+  service:
+    name: iscsid
+    state: started
+    enabled: yes
+  tags: longhorn
+
+# Helm (official get-helm-4 script, verifies checksum) - run on [master] group
+- name: Install Helm
+  shell: curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4 | bash
+  args:
+    creates: /usr/local/bin/helm
+  tags: helm
+
+# Longhorn chart - only from master1 (full path: /usr/local/bin is not in root's sudo PATH on RHEL)
+- name: Install Longhorn with Helm
+  shell: |
+    /usr/local/bin/helm repo add longhorn https://charts.longhorn.io --force-update
+    /usr/local/bin/helm repo update
+    /usr/local/bin/helm upgrade --install longhorn longhorn/longhorn --namespace longhorn-system --create-namespace --version {{ longhorn_version }}
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  register: longhorn_output
+  when: inventory_hostname == master1
+  tags: helm
+
+- name: Print Longhorn install output
+  debug:
+    var: longhorn_output.stdout_lines
+  when: inventory_hostname == master1
+  tags: helm

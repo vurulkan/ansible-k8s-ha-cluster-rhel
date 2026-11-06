@@ -116,7 +116,7 @@
 
   - name: Add Docker Repo
     shell: |
-      yum config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
+      yum config-manager --add-repo=https://download.docker.com/linux/rhel/docker-ce.repo
     args:
       executable: /bin/bash
     tags: preinstall
@@ -126,18 +126,19 @@
       cat <<EOF | sudo tee /etc/yum.repos.d/kubernetes.repo
       [kubernetes]
       name=Kubernetes
-      baseurl=https://pkgs.k8s.io/core:/stable:/v1.33/rpm/
+      baseurl=https://pkgs.k8s.io/core:/stable:/{{ k8s_version }}/rpm/
       enabled=1
       gpgcheck=1
-      gpgkey=https://pkgs.k8s.io/core:/stable:/v1.33/rpm/repodata/repomd.xml.key
+      gpgkey=https://pkgs.k8s.io/core:/stable:/{{ k8s_version }}/rpm/repodata/repomd.xml.key
       EOF
     args:
       executable: /bin/bash
     tags: preinstall
   
+  # containerd.io (2.x) comes from Docker's repo: K8s 1.37 needs containerd 2.x
   - name: install Containerd
     yum:
-      name: containerd
+      name: containerd.io
       state: present
     tags: preinstall
   
@@ -154,15 +155,8 @@
   - name: configuring the systemd cgroup driver for Containerd
     lineinfile:
       path: /etc/containerd/config.toml
-      regexp: '            SystemdCgroup = false'
-      line: '            SystemdCgroup = true'
-    tags: preinstall
-
-  - name: configuring the systemd cgroup driver for Containerd
-    lineinfile:
-      path: /etc/containerd/config.toml
-      regexp: '^(\s*\[plugins\."io\.containerd\.grpc\.v1\.cri"\])'
-      line: '    plugins.cri.systemd_cgroup = false'
+      regexp: '^(\s*)SystemdCgroup = false'
+      line: '\1SystemdCgroup = true'
       backrefs: yes
     tags: preinstall
 
@@ -243,7 +237,7 @@
     vars:
       package_list:
         - kubeadm
-        - containerd
+        - containerd.io
         - kubelet
         - kubectl
     command: "yum versionlock add {{ item }}"
